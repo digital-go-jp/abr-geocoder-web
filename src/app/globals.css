@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+    .contents-grid-span-start {
+        @apply l:col-span-8 m:col-span-8 s:col-span-12 xs:col-span-12 l:col-start-3 m:col-start-3;
+    }
+
+    .contents-grid-margin-x {
+        @apply l:mx-l-mx m:mx-m-mx s:mx-s-mx xs:mx-xs-mx;
+    }
+
+    .box-heading {
+        @apply flex mb-4 place-items-center;
+    }
+}
