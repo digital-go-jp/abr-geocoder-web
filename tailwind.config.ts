@@ -62,7 +62,6 @@ const config: Config = {
           {
             fontWeight: tokens.FontWeight['700'].value,
             lineHeight: tokens.LineHeight['1_7'].value,
-            letterSpacing: tokens.LetterSpacing['0_04'].value,
           },
         ],
         // 見出しXXS (BOLD)
@@ -71,7 +70,6 @@ const config: Config = {
           {
             fontWeight: tokens.FontWeight['700'].value,
             lineHeight: tokens.LineHeight['1_5'].value,
-            letterSpacing: tokens.LetterSpacing['0_04'].value,
           },
         ],
         // 見出しXXS
@@ -80,7 +78,6 @@ const config: Config = {
           {
             fontWeight: tokens.FontWeight['400'].value,
             lineHeight: tokens.LineHeight['1_5'].value,
-            letterSpacing: tokens.LetterSpacing['0_04'].value,
           },
         ],
         // 本文L
@@ -89,7 +86,6 @@ const config: Config = {
           {
             fontWeight: tokens.FontWeight['400'].value,
             lineHeight: tokens.LineHeight['1_7'].value,
-            letterSpacing: tokens.LetterSpacing['0_04'].value,
           },
         ],
         // 本文M
@@ -98,7 +94,6 @@ const config: Config = {
           {
             fontWeight: tokens.FontWeight['400'].value,
             lineHeight: tokens.LineHeight['1_7'].value,
-            letterSpacing: tokens.LetterSpacing['0_04'].value,
           },
         ],
         // ボタン
@@ -107,17 +102,16 @@ const config: Config = {
           {
             fontWeight: tokens.FontWeight['700'].value,
             lineHeight: tokens.LineHeight['1_5'].value,
-            letterSpacing: tokens.LetterSpacing['0_04'].value,
           },
         ],
       },
       // Sizing
       // marginやpaddingなどで利用する余白
       spacing: {
-        'spacing-unit-1': tokens.Spacing[8].value,
-        'spacing-unit-2': tokens.Spacing[16].value,
-        'spacing-unit-3': tokens.Spacing[24].value,
-        'spacing-unit-4': tokens.Spacing[40].value,
+        'spacing-unit-1': '8px',
+        'spacing-unit-2': '16px',
+        'spacing-unit-3': '24px',
+        'spacing-unit-4': '40px',
         'l-mx': '80px',
         'm-mx': '80px',
         's-mx': '16px',

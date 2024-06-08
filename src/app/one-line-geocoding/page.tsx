@@ -10,7 +10,7 @@ import ErrorBox from '../_components/error-box';
 import { fetchGeocodeData } from '../_lib/api';
 import { Roboto_Mono } from 'next/font/google';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { monokaiSublime } from 'react-syntax-highlighter/dist/cjs/styles/hljs';
+import { nightOwl } from 'react-syntax-highlighter/dist/cjs/styles/hljs';
 
 const RobotoMonoFont = Roboto_Mono({ weight: '400', subsets: ['latin'] });
 
@@ -207,9 +207,14 @@ const OneLineGeocoding = () => {
           <div className="grid gap-4 grid-cols-12 contents-grid-margin-x pt-input-mt pb-input-mb">
             <div className="contents-grid-span-start mb-2">
               <div className="grid grid-cols-1">
-                <label htmlFor="address" className="mb-2 text-text-m">
-                  住所を入力してください
-                </label>
+                <div className="flex mb-2">
+                  <label
+                    htmlFor="address"
+                    className="text-s font-semibold leading-6 mr-2"
+                  >
+                    住所
+                  </label>
+                </div>
                 <input
                   {...register('address', {
                     required: '1文字以上入力してください',
@@ -235,7 +240,6 @@ const OneLineGeocoding = () => {
                   <legend className="text-sm font-semibold leading-6 mr-2">
                     検索対象
                   </legend>
-                  <span className="text-error-800 text-text-m">必須</span>
                 </div>
                 <div className="flex text-text-l">
                   <div className="flex items-center">
@@ -252,7 +256,7 @@ const OneLineGeocoding = () => {
                       htmlFor="search_address"
                       className=" text-gray-900 mr-8 pl-2 cursor-pointer"
                     >
-                      住所を検索
+                      住居表示
                     </label>
                   </div>
                   <div className="flex items-center">
@@ -268,7 +272,7 @@ const OneLineGeocoding = () => {
                       htmlFor="search_address_2"
                       className=" text-gray-900 pl-2 cursor-pointer"
                     >
-                      地番を検索
+                      地番
                     </label>
                   </div>
                 </div>
@@ -278,7 +282,6 @@ const OneLineGeocoding = () => {
                   <legend className="text-text-m font-semibold leading-6 mr-2">
                     出力形式
                   </legend>
-                  <span className="text-error-800 text-text-m">必須</span>
                 </div>
                 <div className="flex m:flex-wrap s:flex-wrap xs:flex-wrap text-text-l">
                   <div className="flex items-center py-2">
@@ -512,7 +515,7 @@ const OneLineGeocoding = () => {
                   ) : (
                     <SyntaxHighlighter
                       language="json"
-                      style={monokaiSublime}
+                      style={nightOwl}
                       className="!bg-sumi-900"
                     >
                       {geocodingResultOthers}

@@ -1,7 +1,7 @@
 # abr-geocoder-web
 [日本語 (Japanese)](README.ja.md)
 
-Digital Agency Address-based Registry Geocoder (WEB app version)
+Digital Agency Address-based Registry Geocoder (Web app version)
 
 ## Overview
 
