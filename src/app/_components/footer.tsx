@@ -9,13 +9,21 @@ import Link from 'next/link';
  * @returns
  */
 const Footer = () => {
-  const [isHovered, setIsHovered] = useState(false);
+  const [isHoveredTos, setIsHoveredTos] = useState(false);
+  const [isHoveredPrivacy, setIsHoveredPrivacy] = useState(false);
 
-  const handleMouseEnter = () => {
-    setIsHovered(true);
+  const handleMouseEnterTos = () => {
+    setIsHoveredTos(true);
   };
-  const handleMouseLeave = () => {
-    setIsHovered(false);
+  const handleMouseLeaveTos = () => {
+    setIsHoveredTos(false);
+  };
+
+  const handleMouseEnterPrivacy = () => {
+    setIsHoveredPrivacy(true);
+  };
+  const handleMouseLeavePrivacy = () => {
+    setIsHoveredPrivacy(false);
   };
 
   return (
@@ -24,43 +32,84 @@ const Footer = () => {
         className="mt-10 flex xs:block xs:justify-self-center contents-grid-span-start mb-6
        text-main-800"
       >
-        <Link
-          href={process.env.NEXT_PUBLIC_TOS_URL || ''}
-          className="text-center"
-          target="_blank"
-        >
-          {/* 利用規約と画像どちらをhoverしてもどちらも色変えたいので、mouseenter,mouseleaveを使ってisHoveredのstateで制御 */}
-          <div
-            className="flex h-full content-center items-center xs:justify-center"
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
+        {process.env.NEXT_PUBLIC_TOS_URL && (
+          <Link
+            href={process.env.NEXT_PUBLIC_TOS_URL}
+            className="text-center"
+            target="_blank"
           >
+            {/* 利用規約と画像どちらをhoverしてもどちらも色変えたいので、mouseenter,mouseleaveを使ってisHoveredのstateで制御 */}
             <div
-              className={`text-l pr-2 ${isHovered ? 'text-main-900' : 'text-main-800'}`}
+              className="flex h-full content-center items-center xs:justify-center mr-4"
+              onMouseEnter={handleMouseEnterTos}
+              onMouseLeave={handleMouseLeaveTos}
             >
-              利用規約
+              <div
+                className={`text-l pr-2 ${isHoveredTos ? 'text-main-900' : 'text-main-800'}`}
+              >
+                利用規約
+              </div>
+              <div>
+                {isHoveredTos ? (
+                  <Image
+                    src="./link_hovered.svg"
+                    alt="file"
+                    width="16"
+                    height="20"
+                    priority
+                  />
+                ) : (
+                  <Image
+                    src="./link.svg"
+                    alt="file"
+                    width="16"
+                    height="20"
+                    priority
+                  />
+                )}
+              </div>
             </div>
-            <div>
-              {isHovered ? (
-                <Image
-                  src="./link_hovered.svg"
-                  alt="file"
-                  width="16"
-                  height="20"
-                  priority
-                />
-              ) : (
-                <Image
-                  src="./link.svg"
-                  alt="file"
-                  width="16"
-                  height="20"
-                  priority
-                />
-              )}
+          </Link>
+        )}
+        {process.env.NEXT_PUBLIC_PRIVACY_URL && (
+          <Link
+            href={process.env.NEXT_PUBLIC_PRIVACY_URL}
+            className="text-center"
+            target="_blank"
+          >
+            {/* プライバシーポリシーと画像どちらをhoverしてもどちらも色変えたいので、mouseenter,mouseleaveを使ってisHoveredのstateで制御 */}
+            <div
+              className="flex h-full content-center items-center xs:justify-center"
+              onMouseEnter={handleMouseEnterPrivacy}
+              onMouseLeave={handleMouseLeavePrivacy}
+            >
+              <div
+                className={`text-l pr-2 ${isHoveredPrivacy ? 'text-main-900' : 'text-main-800'}`}
+              >
+                プライバシーポリシー
+              </div>
+              <div>
+                {isHoveredPrivacy ? (
+                  <Image
+                    src="./link_hovered.svg"
+                    alt="file"
+                    width="16"
+                    height="20"
+                    priority
+                  />
+                ) : (
+                  <Image
+                    src="./link.svg"
+                    alt="file"
+                    width="16"
+                    height="20"
+                    priority
+                  />
+                )}
+              </div>
             </div>
-          </div>
-        </Link>
+          </Link>
+        )}
         <div className="ml-auto text-m text-sumi-600">
           {process.env.NEXT_PUBLIC_COPYRIGHT}
         </div>

@@ -17,7 +17,6 @@ abr-geocoder-webは、アドレス（住所・所在地）文字列の正規化�
   - [使い方](#使い方)
     - [`テキスト入力`](#テキスト入力)
     - [`ファイル入力`](#ファイル入力)
-  - [ライセンス](#ライセンス)
 
 ## ドキュメント
 - [このプロジェクトへの参加について](CONTRIBUTING/CONTRIBUTING.ja.md)
@@ -36,16 +35,17 @@ Node: **node.js version 20以上** が必要です。
 3. `.env.example` を参考に `.env` or `.env.local` ファイルを作成して環境変数を設定する
 4. REST APIをcloneする（※ [参考リンク]()を参考）
 5. 開発モードで実行する `npm run dev`
-6. デフォルトでは `http://localhost:3000/` で立ち上がるのでブラウザでアクセスする
+6. デフォルトでは `http://localhost:8080/` で立ち上がるのでブラウザでアクセスする
 
 ## 使い方
 
 ### `テキスト入力`
 
 - `/one-line-geocoding` にアクセス
+  - `/one-line-geocoding?address=東京都千代田区紀尾井町1-3`のように`address`パラメータで住所を入力済みにすることも可能
 - 住所入力欄に任意の住所を入力する
 - 検索対象、出力形式を指定してジオコーディング開始ボタン押下
-  - ※検索対象、出力形式については [@digital-go-jp/abr-geocoder](https://github.com/digital-go-jp/abr-geocoder) を参考
+  - ※検索対象、出力形式については [API仕様](https://lp.geocoder.address-br.digital.go.jp/openapi/) を参照
 - ジオコーディング結果が指定した検索対象、出力形式で表示される
 - コピーボタンを押すと、表示されている形式の文字列がクリップボードにコピーされる
 
@@ -61,7 +61,3 @@ Node: **node.js version 20以上** が必要です。
     ```
 - ファイルを選択して、ジオコーディング開始ボタン押下
 - ジオコーディング結果のファイルが表示されるので、ファイルを保存するボタンでダウンロード可能となる
-
-## ライセンス
-
-The MIT License.
