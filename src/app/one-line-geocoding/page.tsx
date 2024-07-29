@@ -188,7 +188,7 @@ const OneLineGeocoding = () => {
       } else {
         resultText =
           format === OUTPUT_FORMAT.ND_JSON ||
-          format === OUTPUT_FORMAT.ND_GEO_JSON
+            format === OUTPUT_FORMAT.ND_GEO_JSON
             ? JSON.stringify(json)
             : JSON.stringify(json, null, 2);
       }
@@ -250,6 +250,22 @@ const OneLineGeocoding = () => {
                       name="target"
                       type="radio"
                       value="all"
+                      className="h-4 w-4 accent-main-900"
+                    />
+                    <label
+                      htmlFor="search_address"
+                      className=" text-gray-900 mr-8 pl-2 cursor-pointer"
+                    >
+                      住居表示 + 地番
+                    </label>
+                  </div>
+                  <div className="flex items-center">
+                    <input
+                      {...register('target')}
+                      id="search_address"
+                      name="target"
+                      type="radio"
+                      value="residential"
                       className="h-4 w-4 accent-main-900"
                     />
                     <label
@@ -336,22 +352,6 @@ const OneLineGeocoding = () => {
                   <div className="flex items-center py-2">
                     <input
                       {...register('format')}
-                      id="ndjson"
-                      name="format"
-                      type="radio"
-                      value="ndjson"
-                      className="h-4 w-4 accent-main-900"
-                    />
-                    <label
-                      htmlFor="ndjson"
-                      className="text-gray-900 mr-6 pl-2 cursor-pointer"
-                    >
-                      NDJSON
-                    </label>
-                  </div>
-                  <div className="flex items-center py-2">
-                    <input
-                      {...register('format')}
                       id="geojson"
                       name="format"
                       type="radio"
@@ -363,22 +363,6 @@ const OneLineGeocoding = () => {
                       className="text-gray-900 mr-6 pl-2 cursor-pointer"
                     >
                       GeoJSON
-                    </label>
-                  </div>
-                  <div className="flex items-center py-2">
-                    <input
-                      {...register('format')}
-                      id="ndgeojson"
-                      name="format"
-                      type="radio"
-                      value="ndgeojson"
-                      className="h-4 w-4 accent-main-900"
-                    />
-                    <label
-                      htmlFor="ndgeojson"
-                      className="text-gray-900 pl-2 cursor-pointer"
-                    >
-                      NDGeoJSON
                     </label>
                   </div>
                 </div>
@@ -437,10 +421,6 @@ const OneLineGeocoding = () => {
                         return 'JSON';
                       case OUTPUT_FORMAT.GEO_JSON:
                         return 'GeoJSON';
-                      case OUTPUT_FORMAT.ND_JSON:
-                        return 'NDJSON';
-                      case OUTPUT_FORMAT.ND_GEO_JSON:
-                        return 'NDGeoJSON';
                       default:
                         return '';
                     }

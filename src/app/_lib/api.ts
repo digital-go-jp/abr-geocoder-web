@@ -12,8 +12,9 @@ export const fetchGeocodeData = async (
   target?: string
 ) => {
   return fetch(
-    `${process.env.NEXT_PUBLIC_API_BASE_URL}/${process.env.NEXT_PUBLIC_API_VERSION}/abr-geocoder/${encodeURIComponent(address)}.${format}` +
-      `${target ? `?target=${target}` : ''}`,
+    `${process.env.NEXT_PUBLIC_API_BASE_URL}/geocode?address=${encodeURIComponent(address)}` +
+    `${format ? `&format=${format}` : ''}` +
+    `${target ? `&target=${target}` : ''}`,
     {
       method: 'GET',
       headers: { 'x-api-key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
