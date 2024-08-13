@@ -1,6 +1,8 @@
 # abr-geocoder-web
 デジタル庁 アドレス・ベース・レジストリ ジオコーダー(Webアプリ版)
 
+<img src="oneline.png" width="50%">
+
 ## 概要
 
 abr-geocoder-webは、アドレス（住所・所在地）文字列の正規化を行うことができるWebアプリです。
