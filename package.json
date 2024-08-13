@@ -16,6 +16,7 @@
   "dependencies": {
     "@digital-go-jp/design-tokens": "^0.1.6",
     "@testing-library/user-event": "^14.5.2",
+    "autoprefixer": "^10.4.20",
     "encoding-japanese": "^2.0.0",
     "next": "^14.2.3",
     "react": "^18",
