@@ -1,7 +1,7 @@
 # abr-geocoder-web
 デジタル庁 アドレス・ベース・レジストリ ジオコーダー(Webアプリ版)
 
-<img src="oneline.png" width="50%">
+![oneline](oneline.png)
 
 ## 概要
 
