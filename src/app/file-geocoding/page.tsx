@@ -74,7 +74,7 @@ const FileGeocoding = () => {
     try {
       for (const address of fileContent) {
         if (address === '') continue;
-        const response = await fetchGeocodeData(address, 'csv');
+        const response = await fetchGeocodeData(address, 'csv', 'all');
         if (!response.ok) {
           const errorMessage = await response.json();
           throw new Error(`エラーコード: ${response.status}, エラー内容: ${errorMessage?.message}`);
