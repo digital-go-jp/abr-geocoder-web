@@ -13,8 +13,8 @@ export const fetchGeocodeData = async (
 ) => {
   return fetch(
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/geocode?address=${encodeURIComponent(address)}` +
-    `${format ? `&format=${format}` : ''}` +
-    `${target ? `&target=${target}` : ''}`,
+      `${format ? `&format=${format}` : ''}` +
+      `${target ? `&target=${target}` : ''}`,
     {
       method: 'GET',
       headers: { 'x-api-key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
