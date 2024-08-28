@@ -13,7 +13,11 @@ export type FormValues = {
 };
 
 /** ジオコーディング結果の型 */
+type TableRecord = {
+  [key: string]: string;
+};
+
 export type GeocodingResult = {
-  table: Record<string, any>[];
+  table: TableRecord[];
   others: string;
 };

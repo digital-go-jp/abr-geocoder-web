@@ -12,7 +12,12 @@ type NavLinkProps = {
   isActive: boolean;
 };
 
-const NavLink: React.FC<NavLinkProps> = ({ href, text, iconName, isActive }) => {
+const NavLink: React.FC<NavLinkProps> = ({
+  href,
+  text,
+  iconName,
+  isActive,
+}) => {
   const textColorClass = isActive ? 'text-main-900' : 'text-sumi-900';
 
   return (
@@ -61,7 +66,7 @@ const Header: React.FC = () => {
           </Link>
         </div>
         <div className="flex h-full xs:h-auto ml-auto xs:ml-0 xs:mr-auto">
-          {navLinks.map((link) => (
+          {navLinks.map(link => (
             <NavLink
               key={link.href}
               {...link}

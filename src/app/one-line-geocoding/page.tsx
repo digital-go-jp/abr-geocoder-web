@@ -21,8 +21,11 @@ type FormValues = {
 };
 
 const OneLineGeocoding = () => {
-  const [geocodingResultTable, setGeocodingResultTable] = useState<Record<string, any>[]>([]);
-  const [geocodingResultOthers, setGeocodingResultOthers] = useState<string>('');
+  const [geocodingResultTable, setGeocodingResultTable] = useState<
+    Record<string, any>[]
+  >([]);
+  const [geocodingResultOthers, setGeocodingResultOthers] =
+    useState<string>('');
   const [isLoding, setIsLoding] = useState<boolean>(false);
   const [isCopied, setIsCopied] = useState<boolean>(false);
   const [errorInfo, setErrorInfo] = useState<ErrorInfo | undefined>(undefined);
@@ -62,7 +65,9 @@ const OneLineGeocoding = () => {
       if (!response.ok) {
         const statusCode = response.status;
         const errorMessage = await response.json();
-        throw new Error(`エラーコード: ${statusCode}, エラー内容: ${errorMessage?.message}`);
+        throw new Error(
+          `エラーコード: ${statusCode}, エラー内容: ${errorMessage?.message}`
+        );
       }
       await createResult(response, format);
     } catch (error) {
@@ -76,7 +81,8 @@ const OneLineGeocoding = () => {
 
   const processFormData = (data: FormValues) => {
     const { address, target, format } = data;
-    const outputFormat = format === OUTPUT_FORMAT.TABLE ? OUTPUT_FORMAT.JSON : format;
+    const outputFormat =
+      format === OUTPUT_FORMAT.TABLE ? OUTPUT_FORMAT.JSON : format;
     return { address, target, format, outputFormat };
   };
 
@@ -97,8 +103,8 @@ const OneLineGeocoding = () => {
   };
 
   const flattenObject = (obj: any, parentKey = '', res: any = {}) => {
-    for (let key in obj) {
-      if (obj.hasOwnProperty(key)) {
+    for (const key in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, key)) {
         const propName = parentKey ? `${parentKey}.${key}` : key;
         if (typeof obj[key] === 'object' && obj[key] !== null) {
           flattenObject(obj[key], propName, res);
@@ -148,18 +154,36 @@ const OneLineGeocoding = () => {
             ジオコーディング結果
           </div>
         </div>
-        <div className={`grid gap-4 grid-cols-12 contents-grid-margin-x h-11 ${RobotoMonoFont.className}`}>
+        <div
+          className={`grid gap-4 grid-cols-12 contents-grid-margin-x h-11 ${RobotoMonoFont.className}`}
+        >
           <div className="contents-grid-span-start">
             <div className="flex h-full items-center bg-sumi-700 px-6 text-white text-text-l justify-between">
               <span>{formatLabel(getValues('format'))}</span>
               <span>
                 <button onClick={handleCopy}>
-                  <div className={`flex items-center ${isCopied ? '' : 'hidden'}`}>
-                    <Image src="./check.svg" alt="check" width="24" height="24" priority />
+                  <div
+                    className={`flex items-center ${isCopied ? '' : 'hidden'}`}
+                  >
+                    <Image
+                      src="./check.svg"
+                      alt="check"
+                      width="24"
+                      height="24"
+                      priority
+                    />
                     <span className="ml-2">Copied!</span>
                   </div>
-                  <div className={`flex items-center ${isCopied ? 'hidden' : ''}`}>
-                    <Image src="./copy.svg" alt="copy" width="16" height="20" priority />
+                  <div
+                    className={`flex items-center ${isCopied ? 'hidden' : ''}`}
+                  >
+                    <Image
+                      src="./copy.svg"
+                      alt="copy"
+                      width="16"
+                      height="20"
+                      priority
+                    />
                     <span className="ml-2">Copy</span>
                   </div>
                 </button>
@@ -176,13 +200,22 @@ const OneLineGeocoding = () => {
             ${geocodingResultTable.length && !geocodingResultOthers ? 'grid-cols-2' : ''}`}
           >
             {geocodingResultOthers && !geocodingResultTable.length && (
-              <div className="col-span-2 text-left whitespace-pre px-6" data-testid="geocoding-result-other">
-                <SyntaxHighlighter language="json" style={nightOwl} className="!bg-sumi-900">
+              <div
+                className="col-span-2 text-left whitespace-pre px-6"
+                data-testid="geocoding-result-other"
+              >
+                <SyntaxHighlighter
+                  language="json"
+                  style={nightOwl}
+                  className="!bg-sumi-900"
+                >
                   {geocodingResultOthers}
                 </SyntaxHighlighter>
               </div>
             )}
-            {geocodingResultTable.length > 0 && !geocodingResultOthers && renderTableResult(geocodingResultTable)}
+            {geocodingResultTable.length > 0 &&
+              !geocodingResultOthers &&
+              renderTableResult(geocodingResultTable)}
           </div>
         </div>
       </>
@@ -194,10 +227,16 @@ const OneLineGeocoding = () => {
       <Fragment key={rowIndex}>
         {Object.entries(result).map(([key, value], cellIndex) => (
           <Fragment key={cellIndex}>
-            <div className="col-span-1 text-left px-6" data-testid="geocoding-result-table-key">
+            <div
+              className="col-span-1 text-left px-6"
+              data-testid="geocoding-result-table-key"
+            >
               {key}
             </div>
-            <div className="col-span-1 text-left" data-testid="geocoding-result-table-value">
+            <div
+              className="col-span-1 text-left"
+              data-testid="geocoding-result-table-value"
+            >
               {String(value)}
             </div>
           </Fragment>
@@ -244,10 +283,17 @@ const OneLineGeocoding = () => {
             <div className="contents-grid-span-start mb-2">
               <div className="grid grid-cols-1">
                 <div className="flex mb-2">
-                  <label htmlFor="address" className="text-s font-semibold leading-6 mr-2">住所</label>
+                  <label
+                    htmlFor="address"
+                    className="text-s font-semibold leading-6 mr-2"
+                  >
+                    住所
+                  </label>
                 </div>
                 <input
-                  {...register('address', { required: '1文字以上入力してください' })}
+                  {...register('address', {
+                    required: '1文字以上入力してください',
+                  })}
                   type="text"
                   className="min-w min-h-oneline-input-min-h border-black rounded-lg border-solid border p-2 autofill:shadow-[inset_0_0_0px_999px_#fff]"
                   placeholder="例）東京都千代田区紀尾井町1-3"
@@ -255,13 +301,17 @@ const OneLineGeocoding = () => {
                   id="address"
                   data-testid="input-address"
                 />
-                <span className="text-error-800 text-text-m">{errors.address?.message}</span>
+                <span className="text-error-800 text-text-m">
+                  {errors.address?.message}
+                </span>
               </div>
             </div>
             <div className="contents-grid-span-start pb-input-mb">
               <fieldset className="mb-4">
                 <div className="flex mb-2">
-                  <legend className="text-sm font-semibold leading-6 mr-2">検索対象</legend>
+                  <legend className="text-sm font-semibold leading-6 mr-2">
+                    検索対象
+                  </legend>
                 </div>
                 <div className="flex text-text-l">
                   <div className="flex items-center">
@@ -274,7 +324,12 @@ const OneLineGeocoding = () => {
                       value="all"
                       className="h-4 w-4 accent-main-900"
                     />
-                    <label htmlFor="target_all" className="text-gray-900 mr-8 pl-2 cursor-pointer">住居表示 + 地番</label>
+                    <label
+                      htmlFor="target_all"
+                      className="text-gray-900 mr-8 pl-2 cursor-pointer"
+                    >
+                      住居表示 + 地番
+                    </label>
                   </div>
                   <div className="flex items-center">
                     <input
@@ -285,7 +340,12 @@ const OneLineGeocoding = () => {
                       value="residential"
                       className="h-4 w-4 accent-main-900"
                     />
-                    <label htmlFor="target_residential" className="text-gray-900 mr-8 pl-2 cursor-pointer">住居表示</label>
+                    <label
+                      htmlFor="target_residential"
+                      className="text-gray-900 mr-8 pl-2 cursor-pointer"
+                    >
+                      住居表示
+                    </label>
                   </div>
                   <div className="flex items-center">
                     <input
@@ -296,13 +356,20 @@ const OneLineGeocoding = () => {
                       value="parcel"
                       className="h-4 w-4 accent-main-900"
                     />
-                    <label htmlFor="target_parcel" className="text-gray-900 pl-2 cursor-pointer">地番</label>
+                    <label
+                      htmlFor="target_parcel"
+                      className="text-gray-900 pl-2 cursor-pointer"
+                    >
+                      地番
+                    </label>
                   </div>
                 </div>
               </fieldset>
               <fieldset>
                 <div className="flex">
-                  <legend className="text-text-m font-semibold leading-6 mr-2">出力形式</legend>
+                  <legend className="text-text-m font-semibold leading-6 mr-2">
+                    出力形式
+                  </legend>
                 </div>
                 <div className="flex m:flex-wrap s:flex-wrap xs:flex-wrap text-text-l">
                   <div className="flex items-center py-2">
@@ -315,7 +382,12 @@ const OneLineGeocoding = () => {
                       type="radio"
                       className="h-4 w-4 accent-main-900"
                     />
-                    <label htmlFor="table" className="text-gray-900 mr-6 pl-2 cursor-pointer">Table（表）</label>
+                    <label
+                      htmlFor="table"
+                      className="text-gray-900 mr-6 pl-2 cursor-pointer"
+                    >
+                      Table（表）
+                    </label>
                   </div>
                   <div className="flex items-center py-2">
                     <input
@@ -326,7 +398,12 @@ const OneLineGeocoding = () => {
                       value="csv"
                       className="h-4 w-4 accent-main-900"
                     />
-                    <label htmlFor="csv" className="text-gray-900 mr-6 pl-2 cursor-pointer">CSV</label>
+                    <label
+                      htmlFor="csv"
+                      className="text-gray-900 mr-6 pl-2 cursor-pointer"
+                    >
+                      CSV
+                    </label>
                   </div>
                   <div className="flex items-center py-2">
                     <input
@@ -337,7 +414,12 @@ const OneLineGeocoding = () => {
                       value="json"
                       className="h-4 w-4 accent-main-900"
                     />
-                    <label htmlFor="json" className="text-gray-900 mr-6 pl-2 cursor-pointer">JSON</label>
+                    <label
+                      htmlFor="json"
+                      className="text-gray-900 mr-6 pl-2 cursor-pointer"
+                    >
+                      JSON
+                    </label>
                   </div>
                   <div className="flex items-center py-2">
                     <input
@@ -348,7 +430,12 @@ const OneLineGeocoding = () => {
                       value="geojson"
                       className="h-4 w-4 accent-main-900"
                     />
-                    <label htmlFor="geojson" className="text-gray-900 mr-6 pl-2 cursor-pointer">GeoJSON</label>
+                    <label
+                      htmlFor="geojson"
+                      className="text-gray-900 mr-6 pl-2 cursor-pointer"
+                    >
+                      GeoJSON
+                    </label>
                   </div>
                 </div>
               </fieldset>
@@ -369,7 +456,11 @@ const OneLineGeocoding = () => {
       {errorInfo && (
         <div className="grid gap-4 grid-cols-12 contents-grid-margin-x">
           <div className="contents-grid-span-start">
-            <ErrorBox title={errorInfo.title} message={errorInfo.message} isApiError={errorInfo.isApiError} />
+            <ErrorBox
+              title={errorInfo.title}
+              message={errorInfo.message}
+              isApiError={errorInfo.isApiError}
+            />
           </div>
         </div>
       )}

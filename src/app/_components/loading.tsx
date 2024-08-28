@@ -43,7 +43,10 @@ const Loading: React.FC<LoadingProps> = ({ text }) => {
     >
       <div className="bg-white border py-6 px-12 rounded-xl flex items-center flex-col">
         <LoadingSpinner />
-        <div id="loading-text" className="text-sumi-600 text-text-m mt-2 text-center">
+        <div
+          id="loading-text"
+          className="text-sumi-600 text-text-m mt-2 text-center"
+        >
           {text}
         </div>
       </div>

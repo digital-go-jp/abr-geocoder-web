@@ -10,18 +10,19 @@ type ErrorBoxProps = {
 /**
  * エラー表示用のコンポーネント
  */
-const ErrorBox: React.FC<ErrorBoxProps> = ({ title, message, isApiError = false }) => {
+const ErrorBox: React.FC<ErrorBoxProps> = ({
+  title,
+  message,
+  isApiError = false,
+}) => {
   return (
-    <div className="border-solid border-description-box p-spacing-unit-3 border-error-800 mt-8 rounded-xl" role="alert">
+    <div
+      className="border-solid border-description-box p-spacing-unit-3 border-error-800 mt-8 rounded-xl"
+      role="alert"
+    >
       <div className="box-heading">
         <div className="min-w-[32px]">
-          <Image
-            src="/error.svg"
-            alt=""
-            width={32}
-            height={32}
-            priority
-          />
+          <Image src="/error.svg" alt="" width={32} height={32} priority />
         </div>
         <h2 className="pl-6 text-sumi-900 text-heading-xxs-bold">{title}</h2>
       </div>
