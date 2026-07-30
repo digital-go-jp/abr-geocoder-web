@@ -5,19 +5,18 @@ export type ErrorInfo = {
   isApiError?: boolean;
 };
 
-/** フォーム値の型 */
-export type FormValues = {
-  address: string;
-  target: 'all' | 'residential' | 'parcel';
-  format: 'table' | 'csv' | 'json' | 'geojson';
+/** GeoJSON Feature型 */
+export type GeoJSONFeature = {
+  geometry?: {
+    coordinates?: [number, number];
+  };
+  properties?: Record<string, unknown>;
 };
 
-/** ジオコーディング結果の型 */
-type TableRecord = {
-  [key: string]: string;
+/** ジオコーディングAPIのレスポンス型 */
+export type GeocodeResult = {
+  features: GeoJSONFeature[];
 };
 
-export type GeocodingResult = {
-  table: TableRecord[];
-  others: string;
-};
+/** ジオコーディング結果の行型 */
+export type GeocodingResultRow = Record<string, string | number>;

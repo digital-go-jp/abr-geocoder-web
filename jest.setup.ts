@@ -1,6 +1,18 @@
-// Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom';
-import '@testing-library/user-event';
+
+// Mock react-syntax-highlighter to avoid ESM issues in Jest
+jest.mock('react-syntax-highlighter', () => {
+  const React = require('react');
+  return {
+    __esModule: true,
+    default: ({ children }: { children: string }) =>
+      React.createElement('pre', { 'data-testid': 'syntax-highlighter' }, children),
+  };
+});
+
+jest.mock('react-syntax-highlighter/dist/cjs/styles/hljs', () => ({
+  nightOwl: {},
+}));
 
 // 環境変数設定
 process.env.NEXT_PUBLIC_API_BASE_URL = 'http://localhost:3000/';

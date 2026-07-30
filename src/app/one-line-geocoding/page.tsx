@@ -1,33 +1,50 @@
 'use client';
 
-import React, { Fragment, useState, useEffect } from 'react';
-import { ErrorInfo } from '../_lib/types';
-import Loading from '../_components/loading';
-import { OUTPUT_FORMAT } from '../_lib/constants';
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { Fragment, useState, useEffect } from 'react';
+import type { SubmitHandler } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import Image from 'next/image';
-import ErrorBox from '../_components/error-box';
-import { fetchGeocodeData } from '../_lib/api';
 import { Roboto_Mono } from 'next/font/google';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { nightOwl } from 'react-syntax-highlighter/dist/cjs/styles/hljs';
+import { LIMIT_OPTIONS, OUTPUT_FORMAT, PREFECTURES } from '../_lib/constants';
+import { fetchGeocodeData } from '../_lib/api';
+import { flattenObject } from '../_lib/utils';
+import type {
+  ErrorInfo,
+  GeoJSONFeature,
+  GeocodeResult,
+  GeocodingResultRow,
+} from '../_lib/types';
+import Loading from '../_components/loading';
+import {
+  Button,
+  Input,
+  Radio,
+  Label,
+  Legend,
+  ErrorText,
+  NotificationBanner,
+  Select,
+} from '../_components/ui';
 
 const RobotoMonoFont = Roboto_Mono({ weight: '400', subsets: ['latin'] });
 
 type FormValues = {
   address: string;
   target: string;
+  pref: string;
+  limit: string;
   format: string;
 };
 
-const OneLineGeocoding = () => {
+export default function OneLineGeocoding() {
   const [geocodingResultTable, setGeocodingResultTable] = useState<
-    Record<string, any>[]
+    GeocodingResultRow[]
   >([]);
-  const [geocodingResultOthers, setGeocodingResultOthers] =
-    useState<string>('');
-  const [isLoding, setIsLoding] = useState<boolean>(false);
-  const [isCopied, setIsCopied] = useState<boolean>(false);
+  const [geocodingResultOthers, setGeocodingResultOthers] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
   const [errorInfo, setErrorInfo] = useState<ErrorInfo | undefined>(undefined);
 
   const {
@@ -42,6 +59,8 @@ const OneLineGeocoding = () => {
     defaultValues: {
       address: '',
       target: '',
+      pref: '',
+      limit: '1',
       format: '',
     },
   });
@@ -51,39 +70,29 @@ const OneLineGeocoding = () => {
     const address = urlParams.get('address');
     if (address) {
       setValue('address', decodeURIComponent(address));
-      trigger(); // フォームのバリデーションを再評価
+      trigger();
     }
   }, [setValue, trigger]);
 
   const onSubmit: SubmitHandler<FormValues> = async data => {
-    setIsLoding(true);
+    setIsLoading(true);
     setErrorInfo(undefined);
 
-    const { address, target, format, outputFormat } = processFormData(data);
+    const { format, ...params } = processFormData(data);
     try {
-      const response = await fetchGeocodeData(address, outputFormat, target);
-      if (!response.ok) {
-        const statusCode = response.status;
-        const errorMessage = await response.json();
-        throw new Error(
-          `エラーコード: ${statusCode}, エラー内容: ${errorMessage?.message}`
-        );
-      }
-      await createResult(response, format);
+      createResult(await fetchGeocodeData(params), format);
     } catch (error) {
       handleError(error as Error, true);
       setGeocodingResultOthers('');
       setGeocodingResultTable([]);
     } finally {
-      setIsLoding(false);
+      setIsLoading(false);
     }
   };
 
   const processFormData = (data: FormValues) => {
-    const { address, target, format } = data;
-    const outputFormat =
-      format === OUTPUT_FORMAT.TABLE ? OUTPUT_FORMAT.JSON : format;
-    return { address, target, format, outputFormat };
+    const { address, target, pref, limit, format } = data;
+    return { address, category: target, pref, limit: Number(limit), format };
   };
 
   const handleError = (error: Error, isApiError = false) => {
@@ -102,43 +111,22 @@ const OneLineGeocoding = () => {
     }, 1000);
   };
 
-  const flattenObject = (obj: any, parentKey = '', res: any = {}) => {
-    for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
-        const propName = parentKey ? `${parentKey}.${key}` : key;
-        if (typeof obj[key] === 'object' && obj[key] !== null) {
-          flattenObject(obj[key], propName, res);
-        } else {
-          res[propName] = obj[key];
-        }
-      }
-    }
-    return res;
-  };
-
-  const createResult = async (response: Response, format: string) => {
+  const createResult = (json: GeocodeResult, format: string) => {
     let resultText: string | undefined;
-    let resultTable: Record<string, any>[] | undefined;
+    let resultTable: GeocodingResultRow[] | undefined;
 
-    if (format === OUTPUT_FORMAT.CSV) {
-      resultText = await response.text();
+    if (format === OUTPUT_FORMAT.TABLE) {
+      resultTable = json.features.map((feature: GeoJSONFeature) => {
+        const coordinates = feature.geometry?.coordinates;
+        const properties = flattenObject(feature.properties ?? {});
+        return {
+          lng: coordinates?.[0] ?? 'null',
+          lat: coordinates?.[1] ?? 'null',
+          ...properties,
+        };
+      });
     } else {
-      const json = await response.json();
-      if (format === OUTPUT_FORMAT.TABLE) {
-        resultTable = json.map((item: any) => flattenObject(item));
-        resultTable = resultTable?.map(item => {
-          const newItem: Record<string, any> = {};
-          Object.entries(item).forEach(([key, value]) => {
-            const keys = key.split('.');
-            if (keys.length > 1) {
-              newItem[keys.slice(1).join('.')] = value;
-            }
-          });
-          return newItem;
-        });
-      } else {
-        resultText = JSON.stringify(json, null, 2);
-      }
+      resultText = JSON.stringify(json, null, 2);
     }
     setGeocodingResultOthers(resultText || '');
     setGeocodingResultTable(resultTable || []);
@@ -149,16 +137,16 @@ const OneLineGeocoding = () => {
 
     return (
       <>
-        <div className="grid gap-4 grid-cols-12 contents-grid-margin-x mt-10 mb-4">
-          <div className="contents-grid-span-start text-heading-xxs">
+        <div className="grid gap-4 grid-cols-12 mx-4 md:mx-20 mt-10 mb-4">
+          <div className="col-span-12 md:col-span-8 md:col-start-3 text-std-20N-150">
             ジオコーディング結果
           </div>
         </div>
         <div
-          className={`grid gap-4 grid-cols-12 contents-grid-margin-x h-11 ${RobotoMonoFont.className}`}
+          className={`grid gap-4 grid-cols-12 mx-4 md:mx-20 h-11 ${RobotoMonoFont.className}`}
         >
-          <div className="contents-grid-span-start">
-            <div className="flex h-full items-center bg-sumi-700 px-6 text-white text-text-l justify-between">
+          <div className="col-span-12 md:col-span-8 md:col-start-3">
+            <div className="flex h-full items-center bg-solid-gray-700 px-6 text-white text-std-16N-170 justify-between">
               <span>{formatLabel(getValues('format'))}</span>
               <span>
                 <button onClick={handleCopy}>
@@ -191,11 +179,11 @@ const OneLineGeocoding = () => {
             </div>
           </div>
         </div>
-        <div className="grid gap-4 grid-cols-12 contents-grid-margin-x mb-6">
+        <div className="grid gap-4 grid-cols-12 mx-4 md:mx-20 mb-6">
           <div
-            className={`contents-grid-span-start
+            className={`col-span-12 md:col-span-8 md:col-start-3
             grid gap-2 overflow-x-auto pb-6 pt-5
-            bg-sumi-900 text-white
+            bg-solid-gray-900 text-white
             ${RobotoMonoFont.className}
             ${geocodingResultTable.length && !geocodingResultOthers ? 'grid-cols-2' : ''}`}
           >
@@ -207,7 +195,7 @@ const OneLineGeocoding = () => {
                 <SyntaxHighlighter
                   language="json"
                   style={nightOwl}
-                  className="!bg-sumi-900"
+                  className="!bg-solid-gray-900"
                 >
                   {geocodingResultOthers}
                 </SyntaxHighlighter>
@@ -222,9 +210,21 @@ const OneLineGeocoding = () => {
     );
   };
 
-  const renderTableResult = (resultTable: Record<string, any>[]) => {
+  // 候補が複数あるときだけ番号で区切る。表示とコピーで同じ見出しを使う
+  const hasMultipleCandidates = geocodingResultTable.length > 1;
+  const candidateLabel = (index: number) => `候補 ${index + 1}`;
+
+  const renderTableResult = (resultTable: GeocodingResultRow[]) => {
     return resultTable.map((result, rowIndex) => (
       <Fragment key={rowIndex}>
+        {hasMultipleCandidates && (
+          <div
+            className="col-span-2 px-6 pt-4 text-left text-solid-gray-420 first:pt-0"
+            data-testid="geocoding-result-candidate"
+          >
+            {candidateLabel(rowIndex)}
+          </div>
+        )}
         {Object.entries(result).map(([key, value], cellIndex) => (
           <Fragment key={cellIndex}>
             <div
@@ -248,7 +248,10 @@ const OneLineGeocoding = () => {
   const handleCopy = () => {
     let copyText = '';
     if (geocodingResultTable.length) {
-      geocodingResultTable.forEach(result => {
+      geocodingResultTable.forEach((result, index) => {
+        if (hasMultipleCandidates) {
+          copyText += `${candidateLabel(index)}\n`;
+        }
         Object.entries(result).forEach(([key, value]) => {
           copyText += `${key}\t${value}\n`;
         });
@@ -263,10 +266,6 @@ const OneLineGeocoding = () => {
     switch (format) {
       case OUTPUT_FORMAT.TABLE:
         return 'Table';
-      case OUTPUT_FORMAT.CSV:
-        return 'CSV';
-      case OUTPUT_FORMAT.JSON:
-        return 'JSON';
       case OUTPUT_FORMAT.GEO_JSON:
         return 'GeoJSON';
       default:
@@ -276,197 +275,155 @@ const OneLineGeocoding = () => {
 
   return (
     <>
-      {isLoding && <Loading text={'ジオコーディング中...'} />}
+      {isLoading && <Loading text={'ジオコーディング中...'} />}
       <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="bg-main-50">
-          <div className="grid gap-4 grid-cols-12 contents-grid-margin-x pt-input-mt pb-input-mb">
-            <div className="contents-grid-span-start mb-2">
-              <div className="grid grid-cols-1">
-                <div className="flex mb-2">
-                  <label
-                    htmlFor="address"
-                    className="text-s font-semibold leading-6 mr-2"
-                  >
-                    住所
-                  </label>
-                </div>
-                <input
+        <div className="bg-blue-50">
+          <div className="grid gap-4 grid-cols-12 mx-4 md:mx-20 pt-input-mt pb-input-mb">
+            {/* 住所入力 */}
+            <div className="col-span-12 md:col-span-8 md:col-start-3 mb-2">
+              <div className="grid grid-cols-1 gap-2">
+                <Label htmlFor="address" required>
+                  住所
+                </Label>
+                <Input
                   {...register('address', {
                     required: '1文字以上入力してください',
                   })}
                   type="text"
-                  className="min-w min-h-oneline-input-min-h border-black rounded-lg border-solid border p-2 autofill:shadow-[inset_0_0_0px_999px_#fff]"
+                  className="w-full"
                   placeholder="例）東京都千代田区紀尾井町1-3"
-                  name="address"
                   id="address"
+                  isError={!!errors.address}
                   data-testid="input-address"
                 />
-                <span className="text-error-800 text-text-m">
-                  {errors.address?.message}
-                </span>
+                {errors.address && (
+                  <ErrorText>{errors.address.message}</ErrorText>
+                )}
               </div>
             </div>
-            <div className="contents-grid-span-start pb-input-mb">
+
+            {/* 検索対象 */}
+            <div className="col-span-12 md:col-span-8 md:col-start-3 pb-input-mb">
               <fieldset className="mb-4">
-                <div className="flex mb-2">
-                  <legend className="text-sm font-semibold leading-6 mr-2">
-                    検索対象
-                  </legend>
-                </div>
-                <div className="flex text-text-l">
-                  <div className="flex items-center">
-                    <input
-                      {...register('target')}
-                      defaultChecked
-                      id="target_all"
-                      name="target"
-                      type="radio"
-                      value="all"
-                      className="h-4 w-4 accent-main-900"
-                    />
-                    <label
-                      htmlFor="target_all"
-                      className="text-gray-900 mr-8 pl-2 cursor-pointer"
-                    >
-                      住居表示 + 地番
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      {...register('target')}
-                      id="target_residential"
-                      name="target"
-                      type="radio"
-                      value="residential"
-                      className="h-4 w-4 accent-main-900"
-                    />
-                    <label
-                      htmlFor="target_residential"
-                      className="text-gray-900 mr-8 pl-2 cursor-pointer"
-                    >
-                      住居表示
-                    </label>
-                  </div>
-                  <div className="flex items-center">
-                    <input
-                      {...register('target')}
-                      id="target_parcel"
-                      name="target"
-                      type="radio"
-                      value="parcel"
-                      className="h-4 w-4 accent-main-900"
-                    />
-                    <label
-                      htmlFor="target_parcel"
-                      className="text-gray-900 pl-2 cursor-pointer"
-                    >
-                      地番
-                    </label>
-                  </div>
+                <Legend className="mb-2">検索対象</Legend>
+                <div className="flex flex-wrap gap-x-6">
+                  <Radio
+                    {...register('target')}
+                    defaultChecked
+                    id="target_all"
+                    value="all"
+                    size="sm"
+                  >
+                    住居表示 + 地番
+                  </Radio>
+                  <Radio
+                    {...register('target')}
+                    id="target_rsdtdsp"
+                    value="rsdtdsp"
+                    size="sm"
+                  >
+                    住居表示
+                  </Radio>
+                  <Radio
+                    {...register('target')}
+                    id="target_parcel"
+                    value="parcel"
+                    size="sm"
+                  >
+                    地番
+                  </Radio>
+                  <Radio
+                    {...register('target')}
+                    id="target_basic"
+                    value="basic"
+                    size="sm"
+                  >
+                    都道府県/市区町村/町字
+                  </Radio>
                 </div>
               </fieldset>
-              <fieldset>
-                <div className="flex">
-                  <legend className="text-text-m font-semibold leading-6 mr-2">
-                    出力形式
-                  </legend>
+
+              {/* 都道府県・結果件数 */}
+              <div className="flex flex-wrap gap-6 mb-4">
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="pref">都道府県</Label>
+                  <Select {...register('pref')} id="pref" selectSize="sm">
+                    <option value="">指定しない</option>
+                    {PREFECTURES.map(({ code, name }) => (
+                      <option key={code} value={code}>
+                        {name}
+                      </option>
+                    ))}
+                  </Select>
                 </div>
-                <div className="flex m:flex-wrap s:flex-wrap xs:flex-wrap text-text-l">
-                  <div className="flex items-center py-2">
-                    <input
-                      {...register('format')}
-                      defaultChecked
-                      id="table"
-                      name="format"
-                      value="table"
-                      type="radio"
-                      className="h-4 w-4 accent-main-900"
-                    />
-                    <label
-                      htmlFor="table"
-                      className="text-gray-900 mr-6 pl-2 cursor-pointer"
-                    >
-                      Table（表）
-                    </label>
-                  </div>
-                  <div className="flex items-center py-2">
-                    <input
-                      {...register('format')}
-                      id="csv"
-                      name="format"
-                      type="radio"
-                      value="csv"
-                      className="h-4 w-4 accent-main-900"
-                    />
-                    <label
-                      htmlFor="csv"
-                      className="text-gray-900 mr-6 pl-2 cursor-pointer"
-                    >
-                      CSV
-                    </label>
-                  </div>
-                  <div className="flex items-center py-2">
-                    <input
-                      {...register('format')}
-                      id="json"
-                      name="format"
-                      type="radio"
-                      value="json"
-                      className="h-4 w-4 accent-main-900"
-                    />
-                    <label
-                      htmlFor="json"
-                      className="text-gray-900 mr-6 pl-2 cursor-pointer"
-                    >
-                      JSON
-                    </label>
-                  </div>
-                  <div className="flex items-center py-2">
-                    <input
-                      {...register('format')}
-                      id="geojson"
-                      name="format"
-                      type="radio"
-                      value="geojson"
-                      className="h-4 w-4 accent-main-900"
-                    />
-                    <label
-                      htmlFor="geojson"
-                      className="text-gray-900 mr-6 pl-2 cursor-pointer"
-                    >
-                      GeoJSON
-                    </label>
-                  </div>
+                <div className="grid grid-cols-1 gap-2">
+                  <Label htmlFor="limit">結果件数</Label>
+                  <Select {...register('limit')} id="limit" selectSize="sm">
+                    {LIMIT_OPTIONS.map(limit => (
+                      <option key={limit} value={limit}>
+                        {limit}
+                      </option>
+                    ))}
+                  </Select>
+                </div>
+              </div>
+
+              {/* 出力形式 */}
+              <fieldset>
+                <Legend className="mb-2">出力形式</Legend>
+                <div className="flex flex-wrap gap-x-6">
+                  <Radio
+                    {...register('format')}
+                    defaultChecked
+                    id="table"
+                    value="table"
+                    size="sm"
+                  >
+                    Table（表）
+                  </Radio>
+                  <Radio
+                    {...register('format')}
+                    id="geojson"
+                    value="geojson"
+                    size="sm"
+                  >
+                    GeoJSON
+                  </Radio>
                 </div>
               </fieldset>
             </div>
+
+            {/* 送信ボタン */}
             <div className="col-span-12 text-center">
-              <button
-                className={`rounded-button text-white h-button-h min-w-button-min-w text-button
-                ${!isDirty || !isValid ? 'bg-sumi-500 text-opacity-60 ' : 'bg-main-800 text-opacity-100 hover:bg-main-900'}`}
+              <Button
                 type="submit"
+                size="lg"
+                className="h-button-h min-w-button-min-w"
                 disabled={!isDirty || !isValid}
               >
-                <span>ジオコーディング開始</span>
-              </button>
+                ジオコーディング開始
+              </Button>
             </div>
           </div>
         </div>
       </form>
       {errorInfo && (
-        <div className="grid gap-4 grid-cols-12 contents-grid-margin-x">
-          <div className="contents-grid-span-start">
-            <ErrorBox
-              title={errorInfo.title}
-              message={errorInfo.message}
-              isApiError={errorInfo.isApiError}
-            />
+        <div className="grid gap-4 grid-cols-12 mx-4 md:mx-20 mt-8">
+          <div className="col-span-12 md:col-span-8 md:col-start-3">
+            <NotificationBanner type="error" title={errorInfo.title}>
+              <ul className="list-disc list-inside space-y-1">
+                <li>{errorInfo.message}</li>
+                {errorInfo.isApiError && (
+                  <li>
+                    このメッセージが繰り返し表示される場合は、管理者にお問い合わせください。
+                  </li>
+                )}
+              </ul>
+            </NotificationBanner>
           </div>
         </div>
       )}
-      {!isLoding && renderGeocodingResult()}
+      {!isLoading && renderGeocodingResult()}
     </>
   );
-};
-
-export default OneLineGeocoding;
+}

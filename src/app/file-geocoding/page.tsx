@@ -1,42 +1,72 @@
 'use client';
 
+import type { FormEvent } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import Encoding from 'encoding-japanese';
-import React, { useCallback, useRef, useState } from 'react';
-import { FILE_PREVIEW_MAX_LINE } from '../_lib/constants';
-import Loading from '../_components/loading';
 import Image from 'next/image';
-import { ErrorInfo } from '../_lib/types';
 import { useDropzone } from 'react-dropzone';
-import ErrorBox from '../_components/error-box';
-import { fetchGeocodeData } from '../_lib/api';
+import { FILE_PREVIEW_MAX_LINE } from '../_lib/constants';
 import { ProcessStep } from '../_lib/enums';
+import { fetchGeocodeData } from '../_lib/api';
+import { flattenObject } from '../_lib/utils';
+import type { ErrorInfo } from '../_lib/types';
+import Loading from '../_components/loading';
+import { Button, NotificationBanner } from '../_components/ui';
 
-const FileGeocoding = () => {
+const MAX_FILE_SIZE = 5 * 1024 * 1024;
+const ACCEPTED_FILE_TYPES = ['.txt', '.csv'];
+const FILE_NAME_POSTFIX = '_GeocodingResults.csv';
+
+export default function FileGeocoding() {
   const [fileContent, setFileContent] = useState<string[]>([]);
-  const [fileGeocodingCount, setFileGeocodingCount] = useState<number>(0);
-  const [isFileLoading, setIsFileLoading] = useState<boolean>(false);
-  const [processStep, setProcessStep] = useState<ProcessStep>(
-    ProcessStep.DEFAULT
-  );
+  const [fileGeocodingCount, setFileGeocodingCount] = useState(0);
+  const [isFileLoading, setIsFileLoading] = useState(false);
+  const [processStep, setProcessStep] = useState(ProcessStep.DEFAULT);
   const [fileInfo, setFileInfo] = useState<File | undefined>(undefined);
-  const [isGeocodingLoading, setIsGeocodingLoading] = useState<boolean>(false);
+  const [isGeocodingLoading, setIsGeocodingLoading] = useState(false);
   const [fileGeocodingResult, setFileGeocodingResult] = useState<string[]>([]);
   const [errorInfo, setErrorInfo] = useState<ErrorInfo | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const fileNamePostFix = '_GeocodingResults.csv';
+
+  const formatFileSize = (bytes: number): string => {
+    const kb = 1024;
+    const mb = kb * 1024;
+    const gb = mb * 1024;
+    if (bytes < kb) return `${bytes} B`;
+    if (bytes < mb) return `${(bytes / kb).toFixed(2)} KB`;
+    if (bytes < gb) return `${(bytes / mb).toFixed(2)} MB`;
+    return `${(bytes / gb).toFixed(2)} GB`;
+  };
 
   const handleSelectedFiles = useCallback(async (files: File[]) => {
     setIsFileLoading(true);
+    setErrorInfo(undefined);
     try {
       if (files.length === 0) throw new Error('ファイルを選択してください');
       if (files.length > 1)
         throw new Error('複数ファイルはアップロードできません');
       const file = files[0];
+
+      // ファイル形式チェック
+      const fileExtension = '.' + file.name.split('.').pop()?.toLowerCase();
+      if (!ACCEPTED_FILE_TYPES.includes(fileExtension)) {
+        throw new Error(
+          `許可されていないファイル形式です。対応形式：${ACCEPTED_FILE_TYPES.join(', ')}`
+        );
+      }
+
+      // ファイルサイズチェック
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error(
+          `ファイルサイズが上限（${formatFileSize(MAX_FILE_SIZE)}）を超えています。現在：${formatFileSize(file.size)}`
+        );
+      }
+
       setFileInfo(file);
       const fileContents = await readFileContents(file);
       if (fileContents.length > Number(process.env.NEXT_PUBLIC_FILE_MAX_LINE)) {
         throw new Error(
-          `アップロードされたリストが${process.env.NEXT_PUBLIC_FILE_MAX_LINE}件を超えています`
+          `アップロードされたリストが${process.env.NEXT_PUBLIC_FILE_MAX_LINE}件を超えています（現在：${fileContents.length}件）`
         );
       }
       setFileContent(fileContents);
@@ -77,27 +107,59 @@ const FileGeocoding = () => {
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: handleSelectedFiles,
+    accept: {
+      'text/plain': ['.txt'],
+      'text/csv': ['.csv'],
+    },
+    maxFiles: 1,
+    maxSize: MAX_FILE_SIZE,
   });
 
-  const onGeocoding = async (event: React.FormEvent) => {
+  const geojsonToCsvRow = (
+    feature: Record<string, unknown>,
+    headers: string[]
+  ): string => {
+    const geometry = feature.geometry as Record<string, unknown>;
+    const coordinates = geometry?.coordinates as number[];
+    const properties = flattenObject(
+      feature.properties as Record<string, unknown>
+    );
+
+    const row: Record<string, unknown> = {
+      lng: coordinates?.[0] ?? 'null',
+      lat: coordinates?.[1] ?? 'null',
+      ...properties,
+    };
+
+    return headers.map(h => row[h] ?? 'null').join(',');
+  };
+
+  const onGeocoding = async (event: FormEvent) => {
     event.preventDefault();
     setIsGeocodingLoading(true);
     const geocodingResultList: string[] = [];
+    const csvHeaders: string[] = [];
     try {
       for (const address of fileContent) {
         if (address === '') continue;
-        const response = await fetchGeocodeData(address, 'csv', 'all');
-        if (!response.ok) {
-          const errorMessage = await response.json();
-          throw new Error(
-            `エラーコード: ${response.status}, エラー内容: ${errorMessage?.message}`
+        const json = await fetchGeocodeData({ address, category: 'all' });
+        const feature = json.features?.[0];
+
+        if (feature && csvHeaders.length === 0) {
+          const properties = flattenObject(
+            feature.properties as Record<string, unknown>
+          );
+          csvHeaders.push('lng', 'lat', ...Object.keys(properties));
+          geocodingResultList.push(csvHeaders.join(','));
+        }
+
+        if (feature) {
+          geocodingResultList.push(geojsonToCsvRow(feature, csvHeaders));
+        } else {
+          geocodingResultList.push(
+            csvHeaders.map((_, i) => (i === 0 ? address : '')).join(',')
           );
         }
-        const text = await response.text();
-        const responseData = text.split('\n');
-        if (geocodingResultList.length === 0)
-          geocodingResultList.push(responseData[0]);
-        geocodingResultList.push(responseData[1]);
         setFileGeocodingCount(prevCount => prevCount + 1);
       }
       setFileGeocodingResult(geocodingResultList);
@@ -123,7 +185,7 @@ const FileGeocoding = () => {
     const bom = new Uint8Array([0xef, 0xbb, 0xbf]);
     const blob = new Blob([bom, data.join('\n')], { type: 'text/csv' });
     const link = document.createElement('a');
-    link.download = `${fileInfo?.name?.split('.')[0]}${fileNamePostFix}`;
+    link.download = `${fileInfo?.name?.split('.')[0]}${FILE_NAME_POSTFIX}`;
     link.href = URL.createObjectURL(blob);
     link.click();
     URL.revokeObjectURL(link.href);
@@ -141,16 +203,6 @@ const FileGeocoding = () => {
     setProcessStep(ProcessStep.DEFAULT);
   };
 
-  const formatFileSize = (bytes: number): string => {
-    const kb = 1024;
-    const mb = kb * 1024;
-    const gb = mb * 1024;
-    if (bytes < kb) return `${bytes} B`;
-    if (bytes < mb) return `${(bytes / kb).toFixed(2)} KB`;
-    if (bytes < gb) return `${(bytes / mb).toFixed(2)} MB`;
-    return `${(bytes / gb).toFixed(2)} GB`;
-  };
-
   return (
     <>
       {isFileLoading && <Loading text={'ファイル読み込み中...'} />}
@@ -161,12 +213,16 @@ const FileGeocoding = () => {
       )}
       <div className="grid gap-4 grid-cols-12">
         <form onSubmit={onSubmit} className="col-span-12">
-          <div className="bg-main-50 h-file-input-h">
-            <div className="grid grid-cols-12 gap-4 pt-10 contents-grid-margin-x justify-center items-center ">
+          <div className="bg-blue-50 h-file-input-h">
+            <div className="grid grid-cols-12 gap-4 pt-10 mx-4 md:mx-20 justify-center items-center ">
               <div
-                className={`grid grid-cols-12 contents-grid-span-start place-items-center
-                            border-dashed border min-h-file-description-h border-main-800 rounded-lg
-                            ${isDragActive ? 'bg-grey-200 bg-opacity-40' : 'bg-grey-200 bg-opacity-20'}`}
+                className={`grid grid-cols-12 col-span-12 md:col-span-8 md:col-start-3 place-items-center
+                            border min-h-file-description-h rounded-8
+                            ${
+                              isDragActive
+                                ? 'outline outline-4 -outline-offset-4 outline-green-500 bg-green-50 border-green-500'
+                                : 'border-solid-gray-500 bg-solid-gray-200/20'
+                            }`}
                 {...getRootProps()}
               >
                 <div className="col-span-12 h-full pt-file-select-pt pb-file-select-pb">
@@ -175,9 +231,14 @@ const FileGeocoding = () => {
                       e.preventDefault();
                       fileInputRef?.current?.click();
                     }}
-                    className="rounded-button bg-main-800 hover:bg-main-900 text-button text-white h-button-h w-selected-file p-spacing-unit-1"
+                    className={`rounded-8 text-oln-16B-100 h-button-h w-selected-file p-spacing-unit-1 border
+                      ${
+                        isDragActive
+                          ? 'border-green-500 bg-green-50 text-green-500 underline'
+                          : 'border-blue-900 bg-white text-blue-900 hover:bg-blue-200 hover:text-blue-1000 hover:underline'
+                      }`}
                   >
-                    ファイルを選ぶ
+                    ファイルを選択
                   </button>
                   <input
                     ref={fileInputRef}
@@ -189,78 +250,81 @@ const FileGeocoding = () => {
                     data-testid="file-input"
                   />
                 </div>
-                <div className="col-span-12 items-center text-center text-sumi-700 text-text-l h-full pb-6">
-                  ここにファイルをドラッグ＆ドロップしてください。
-                  <br />
-                  １回のジオコーディングでは{' '}
-                  {process.env.NEXT_PUBLIC_FILE_MAX_LINE} 件が上限です。
+                <div
+                  className={`col-span-12 items-center text-center text-std-16N-170 h-full pb-6
+                  ${isDragActive ? 'text-green-500 font-bold' : 'text-solid-gray-700'}`}
+                >
+                  {isDragActive ? (
+                    'ここにファイルをドロップしてください'
+                  ) : (
+                    <>
+                      または、このエリア内にドラッグ＆ドロップ
+                      <br />
+                      <span className="text-dns-14N-130">
+                        対応形式：TXT/CSV（最大5MB）、
+                        {process.env.NEXT_PUBLIC_FILE_MAX_LINE}件まで
+                      </span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-12 gap-4 contents-grid-margin-x">
+          <div className="grid grid-cols-12 gap-4 mx-4 md:mx-20">
             {errorInfo && processStep === ProcessStep.ERROR && (
-              <div className="contents-grid-span-start">
-                <ErrorBox
-                  title={errorInfo.title}
-                  message={errorInfo.message}
-                  isApiError={errorInfo.isApiError}
-                />
+              <div className="col-span-12 md:col-span-8 md:col-start-3 mt-8">
+                <NotificationBanner type="error" title={errorInfo.title}>
+                  <ul className="list-disc list-inside space-y-1">
+                    <li>{errorInfo.message}</li>
+                    {errorInfo.isApiError && (
+                      <li>
+                        このメッセージが繰り返し表示される場合は、管理者にお問い合わせください。
+                      </li>
+                    )}
+                  </ul>
+                </NotificationBanner>
               </div>
             )}
             {fileContent.length <= 0 && processStep === ProcessStep.DEFAULT && (
-              <div className="contents-grid-span-start border-solid border-description-box p-spacing-unit-3 border-main-800 mt-8 rounded-xl">
-                <div className="box-heading">
-                  <div className="min-w-[32px]">
-                    <Image
-                      src="./info.svg"
-                      alt="info"
-                      width="32"
-                      height="32"
-                      priority
-                    />
-                  </div>
-                  <div className="pl-6 text-sumi-900 text-heading-xxs-bold">
-                    以下の形式のテキストファイルがジオコーディング可能です
-                  </div>
-                </div>
-                <div className="pl-14">
-                  <div className="text-sumi-900 text-text-m mb-6">
+              <div className="col-span-12 md:col-span-8 md:col-start-3 mt-8">
+                <NotificationBanner
+                  type="info1"
+                  title="以下の形式のテキストファイルがジオコーディング可能です"
+                >
+                  <div className="space-y-4">
                     <ul className="list-disc list-inside">
                       <li>文字コード：Shift_JIS または UTF-8</li>
                       <li>改行コード：CR, LF, CR+LF</li>
                       <li>入力ファイルの例：</li>
-                      <div className="border border-sumi-900 mt-2 ml-4 p-2">
-                        東京都千代田区紀尾井町1-3
-                        <br />
-                        東京都千代田区永田町1-6-1
-                      </div>
                     </ul>
-                  </div>
-                  <div className="text-sumi-700 text-text-m">
-                    ジオコーディング結果は以下の形式のCSVです。CSVの各項目の意味については利用者マニュアルをご参照ください。
-                  </div>
-                  <div className="text-sumi-900 text-text-m ml-4">
-                    <ul className="list-disc list-inside">
+                    <div className="border border-solid-gray-900 ml-4 p-2">
+                      東京都千代田区紀尾井町1-3
+                      <br />
+                      東京都千代田区永田町1-6-1
+                    </div>
+                    <p className="text-solid-gray-700">
+                      ジオコーディング結果は以下の形式のCSVです。CSVの各項目の意味については利用者マニュアルをご参照ください。
+                    </p>
+                    <ul className="list-disc list-inside ml-4">
                       <li>文字コード：UFT-8</li>
                       <li>改行コード：LF</li>
                     </ul>
                   </div>
-                </div>
+                </NotificationBanner>
               </div>
             )}
             {fileContent.length > 0 &&
               processStep === ProcessStep.FILE_LOADED && (
-                <div className="grid grid-cols-12 gap-4 contents-grid-span-start">
+                <div className="grid grid-cols-12 gap-4 col-span-12 md:col-span-8 md:col-start-3">
                   <div className="grid col-span-12 mt-10">
-                    <div className="col-span-12 text-heading-xxs">
+                    <div className="col-span-12 text-std-20N-150">
                       ファイルの読み込みが完了しました
                     </div>
-                    <div className="col-span-12 border-solid border px-file-items-x border-sumi-500 mt-1 break-all">
+                    <div className="col-span-12 border-solid border px-file-items-x border-solid-gray-500 mt-1 break-all">
                       {previewFileContents(fileContent).map((item, idx) => (
                         <div
                           key={idx}
-                          className="border-b flex h-file-items-h items-center text-text-l"
+                          className="border-b flex h-file-items-h items-center text-std-16N-170"
                         >
                           <div>
                             <Image
@@ -281,25 +345,28 @@ const FileGeocoding = () => {
                   </div>
                   <div className="grid col-span-12 mt-6 justify-items-center">
                     <div className="flex justify-center justify-items-center w-full">
-                      <button
-                        className="border border-main-800 rounded-button text-main-800 hover:text-main-900 hover:border-main-900 h-button-h w-cancel-button mr-6"
+                      <Button
+                        variant="outline"
+                        size="lg"
+                        className="h-button-h w-cancel-button mr-6"
                         onClick={onCancel}
                       >
                         キャンセル
-                      </button>
-                      <button
-                        className="rounded-button bg-main-800 hover:bg-main-900 text-white h-button-h w-geocoding-button"
+                      </Button>
+                      <Button
+                        size="lg"
+                        className="h-button-h w-geocoding-button"
                         onClick={onGeocoding}
                       >
                         ジオコーディング開始
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>
               )}
             {fileContent.length > 0 && processStep === ProcessStep.GEOCODED && (
-              <div className="contents-grid-span-start">
-                <div className="flex items-center border-solid border px-file-items-x border-sumi-500 rounded-md mt-10 h-file-description-h">
+              <div className="col-span-12 md:col-span-8 md:col-start-3">
+                <div className="flex items-center border-solid border px-file-items-x border-solid-gray-500 rounded-6 mt-10 h-file-description-h">
                   <div>
                     <Image
                       src="./file_inactive.svg"
@@ -309,11 +376,11 @@ const FileGeocoding = () => {
                       priority
                     />
                   </div>
-                  <div className="text-sumi-900 ml-1">
+                  <div className="text-solid-gray-900 ml-1">
                     {fileInfo?.name?.split('.')[0]}
-                    {fileNamePostFix}
+                    {FILE_NAME_POSTFIX}
                   </div>
-                  <div className="flex items-center text-sumi-900 ml-auto">
+                  <div className="flex items-center text-solid-gray-900 ml-auto">
                     <div>
                       <Image
                         src="./download.svg"
@@ -325,7 +392,7 @@ const FileGeocoding = () => {
                     </div>
                     <div className="ml-1">{fileContent.length} 件</div>
                   </div>
-                  <div className="flex items-center text-sumi-900 ml-auto">
+                  <div className="flex items-center text-solid-gray-900 ml-auto">
                     <div>
                       <Image
                         src="./size.svg"
@@ -341,12 +408,13 @@ const FileGeocoding = () => {
                   </div>
                 </div>
                 <div className="place-self-center text-center mt-6">
-                  <button
-                    className="rounded-button bg-main-800 hover:bg-main-900 text-white h-button-h min-w-button-min-w w-save-file-button"
+                  <Button
                     type="submit"
+                    size="lg"
+                    className="h-button-h min-w-button-min-w w-save-file-button"
                   >
                     ファイルを保存する
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}
@@ -355,6 +423,4 @@ const FileGeocoding = () => {
       </div>
     </>
   );
-};
-
-export default FileGeocoding;
+}

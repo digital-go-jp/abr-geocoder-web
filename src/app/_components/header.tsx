@@ -5,39 +5,51 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
-type NavLinkProps = {
+type GlobalMenuItemProps = {
   href: string;
   text: string;
   iconName: string;
   isActive: boolean;
 };
 
-const NavLink: React.FC<NavLinkProps> = ({
+const GlobalMenuItem: React.FC<GlobalMenuItemProps> = ({
   href,
   text,
   iconName,
   isActive,
 }) => {
-  const textColorClass = isActive ? 'text-main-900' : 'text-sumi-900';
-
   return (
-    <div className={`h-full xs:h-auto ${textColorClass}`}>
-      <Link href={href} className={`text-button ${textColorClass}`}>
-        <div className="flex h-full items-center place-content-center px-6 xs:py-2">
-          <Image
-            src={`/${iconName}_${isActive ? 'active' : 'inactive'}.svg`}
-            alt=""
-            width={16}
-            height={20}
-            priority
-          />
-          <span className="ml-2">{text}</span>
-        </div>
+    <li className="flex items-stretch relative">
+      <Link
+        href={href}
+        className={`
+          relative flex items-center gap-1 min-h-16 px-5 py-4
+          font-bold text-dns-16B-130 no-underline
+          focus-visible:outline focus-visible:outline-4 focus-visible:outline-black focus-visible:outline-offset-[calc(2/16*1rem)] focus-visible:rounded focus-visible:bg-yellow-300 focus-visible:shadow-[0_0_0_calc(2/16*1rem)_theme(colors.yellow.300)]
+          ${
+            isActive
+              ? `bg-white text-blue-1000
+                 after:absolute after:right-0 after:bottom-0 after:left-0 after:border-b-4 after:border-blue-900
+                 hover:text-blue-900
+                 focus-visible:bg-white`
+              : `text-solid-gray-900
+                 hover:bg-solid-gray-50
+                 hover:after:absolute hover:after:right-0 hover:after:bottom-0 hover:after:left-0 hover:after:border-b-2 hover:after:border-black hover:after:content-['']`
+          }
+        `}
+        aria-current={isActive ? 'page' : undefined}
+      >
+        <Image
+          src={`/${iconName}_${isActive ? 'active' : 'inactive'}.svg`}
+          alt=""
+          width={24}
+          height={24}
+          className="shrink-0"
+          priority
+        />
+        <span>{text}</span>
       </Link>
-      {isActive && (
-        <div className="relative -top-1 border-b-4 border-solid border-main-900"></div>
-      )}
-    </div>
+    </li>
   );
 };
 
@@ -55,26 +67,25 @@ const Header: React.FC = () => {
       : pathname === href;
 
   return (
-    <header className="bg-white border-b border-sumi-500 h-20 xs:h-24 border-solid content-center">
-      <nav
-        className="flex xs:flex-wrap justify-items-start l:items-center m:items-center l:justify-between m:justify-between h-full contents-grid-margin-x"
-        aria-label={process.env.NEXT_PUBLIC_APP_TITLE}
-      >
-        <div className="xs:w-full place-self-center xs:text-center">
-          <Link href="/" className="text-sumi-900 text-heading-m-bold">
+    <header className="bg-white border-b border-solid-gray-420">
+      <div className="flex flex-wrap md:flex-nowrap justify-items-start md:items-end md:justify-between mx-4 md:mx-20">
+        <div className="w-full md:w-auto place-self-center text-center md:text-left py-4">
+          <Link href="/" className="text-solid-gray-900 text-std-32B-150">
             {process.env.NEXT_PUBLIC_APP_TITLE}
           </Link>
         </div>
-        <div className="flex h-full xs:h-auto ml-auto xs:ml-0 xs:mr-auto">
-          {navLinks.map(link => (
-            <NavLink
-              key={link.href}
-              {...link}
-              isActive={isActiveLink(link.href)}
-            />
-          ))}
-        </div>
-      </nav>
+        <nav aria-label="グローバルメニュー">
+          <ul className="flex items-stretch m-0 p-0 list-none text-solid-gray-900">
+            {navLinks.map(link => (
+              <GlobalMenuItem
+                key={link.href}
+                {...link}
+                isActive={isActiveLink(link.href)}
+              />
+            ))}
+          </ul>
+        </nav>
+      </div>
     </header>
   );
 };
