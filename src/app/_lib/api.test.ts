@@ -1,9 +1,9 @@
-import { fetchGeocodeData } from './api';
+import { fetchApiInfo, fetchGeocodeData } from './api';
+
+const mockFetch = jest.fn();
+(global as any).fetch = mockFetch;
 
 describe('fetchGeocodeData', () => {
-  const mockFetch = jest.fn();
-  (global as any).fetch = mockFetch;
-
   const okResponse = (body: unknown = { features: [] }) => ({
     ok: true,
     json: jest.fn().mockResolvedValue(body),
@@ -105,5 +105,50 @@ describe('fetchGeocodeData', () => {
     await expect(
       fetchGeocodeData({ address: '東京都千代田区紀尾井町1-3' })
     ).rejects.toThrow('エラーコード: 502, エラー内容: Bad Gateway');
+  });
+});
+
+describe('fetchApiInfo', () => {
+  const apiInfo = { name: 'abrg', version: '3.0.51', db_version: '3.0.18' };
+
+  beforeEach(() => {
+    mockFetch.mockReset();
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue(apiInfo),
+    });
+  });
+
+  it('ルートをクエリなしで叩く', async () => {
+    await fetchApiInfo();
+
+    const url = new URL(mockFetch.mock.calls[0][0]);
+    expect(url.pathname).toBe('/');
+    expect(url.search).toBe('');
+  });
+
+  it('APIキーをヘッダーに載せる', async () => {
+    await fetchApiInfo();
+
+    expect(mockFetch.mock.calls[0][1].headers).toEqual({
+      'x-api-key': 'api-key',
+    });
+  });
+
+  it('レスポンス本文を返す', async () => {
+    await expect(fetchApiInfo()).resolves.toEqual(apiInfo);
+  });
+
+  it('エラーレスポンスを Error にする', async () => {
+    mockFetch.mockResolvedValue({
+      ok: false,
+      status: 503,
+      statusText: 'Service Unavailable',
+      json: jest.fn().mockRejectedValue(new SyntaxError('Unexpected token')),
+    });
+
+    await expect(fetchApiInfo()).rejects.toThrow(
+      'エラーコード: 503, エラー内容: Service Unavailable'
+    );
   });
 });

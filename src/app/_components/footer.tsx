@@ -2,6 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
+import VersionBadge from './version-badge';
 
 type FooterLinkProps = {
   url: string;
@@ -58,8 +59,9 @@ const Footer: React.FC = () => {
             />
           )}
         </nav>
-        <div className="md:ml-auto text-dns-14N-130 text-solid-gray-600">
-          {process.env.NEXT_PUBLIC_COPYRIGHT}
+        <div className="md:ml-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-dns-14N-130 text-solid-gray-600">
+          <VersionBadge />
+          <span>{process.env.NEXT_PUBLIC_COPYRIGHT}</span>
         </div>
       </div>
     </footer>

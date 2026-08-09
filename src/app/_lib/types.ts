@@ -20,3 +20,15 @@ export type GeocodeResult = {
 
 /** ジオコーディング結果の行型 */
 export type GeocodingResultRow = Record<string, string | number>;
+
+/**
+ * ルートが返すAPIの情報型。
+ * APIのバージョンはルートでは version、ジオコーディング結果の result_info では
+ * api_version という名前で返る。
+ */
+export type ApiInfo = {
+  /** APIのバージョン */
+  version?: string;
+  /** 収録しているABRデータのバージョン */
+  db_version?: string;
+};

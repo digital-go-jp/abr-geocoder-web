@@ -1,3 +1,5 @@
+import type { ApiInfo } from './types';
+
 /** ジオコーディングAPIのクエリパラメータ */
 export type GeocodeParams = {
   /** 処理する住所 */
@@ -11,28 +13,19 @@ export type GeocodeParams = {
 };
 
 /**
- * ジオコーディング結果を取得する。
+ * APIを叩いて本文を返す。
  * エラーレスポンスは本文の message を載せた Error にする。APIは本文に message を
  * 返すが、経路上のプロキシなどJSON以外を返す相手もあるため、読めなければ
  * statusText で代替する。
  */
-export const fetchGeocodeData = async ({
-  address,
-  category,
-  pref,
-  limit = 1,
-}: GeocodeParams) => {
-  const query = new URLSearchParams({ address, limit: String(limit) });
-  if (category) query.set('category', category);
-  if (pref) query.set('pref', pref);
-
+const request = async (path: string) => {
   // 設定値の末尾のスラッシュはパスの二重スラッシュになるので落とす
   const baseUrl = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').replace(
     /\/+$/,
     ''
   );
 
-  const response = await fetch(`${baseUrl}/geocode?${query.toString()}`, {
+  const response = await fetch(`${baseUrl}${path}`, {
     method: 'GET',
     headers: { 'x-api-key': process.env.NEXT_PUBLIC_API_KEY ?? '' },
   });
@@ -45,3 +38,23 @@ export const fetchGeocodeData = async ({
 
   return response.json();
 };
+
+/** ジオコーディング結果を取得する。 */
+export const fetchGeocodeData = async ({
+  address,
+  category,
+  pref,
+  limit = 1,
+}: GeocodeParams) => {
+  const query = new URLSearchParams({ address, limit: String(limit) });
+  if (category) query.set('category', category);
+  if (pref) query.set('pref', pref);
+
+  return request(`/geocode?${query.toString()}`);
+};
+
+/**
+ * APIのバージョンと収録データのバージョンを取得する。
+ * ルートは住所を渡さずに応答するので、ジオコーディングを実行する前に引ける。
+ */
+export const fetchApiInfo = async (): Promise<ApiInfo> => request('/');
